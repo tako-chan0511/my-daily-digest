@@ -20,12 +20,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1. SDKを初期化
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     
-    // 2. モデルの取得
-    // エラーログの v1beta を回避するため、第2引数で明示的に 'v1' (安定版) を指定します
-    const model = genAI.getGenerativeModel(
-      { model: "gemini-1.5-flash" },
-      { apiVersion: 'v1' }
-    );
+   // 2. モデルの取得
+   // 'gemini-1.5-flash' が 404 になる場合、より互換性の高い以下を試してください
+   const model = genAI.getGenerativeModel(
+     { model: "gemini-1.5-flash-8b" }, // または "gemini-1.0-pro"
+     { apiVersion: 'v1' }
+   );
 
     const prompt = `以下の記事を、Markdown形式で構造化して要約してください。見出し、太字、箇条書きリストなどを効果的に使用し、最も重要なポイントがひと目で分かるようにまとめてください。\n\n記事本文：\n${articleText}`;
 
