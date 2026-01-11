@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS対応：Preflightリクエストの許可
@@ -22,23 +21,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // 1. SDKを初期化（環境変数からキーを読み込む）
-    const genAI = new GoogleGenerativeAI(geminiApiKey);
-    
-    // 2. モデルの取得
-    // 重要：apiVersion: 'v1' を指定することで、404 (v1beta) エラーを回避します
-    const model = genAI.getGenerativeModel(
-      { model: "gemini-1.5-flash" }, 
-      { apiVersion: 'v1' }
-    );
-
     const prompt = `以下の記事を、Markdown形式で構造化して要約してください。見出し、太字、箇条書きリストなどを効果的に使用し、最も重要なポイントがひと目で分かるようにまとめてください。\n\n記事本文：\n${articleText}`;
+    
+    // v1 APIエンドポイントを使用（v1betaではなく）
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    const apiResponse = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        contents: [{ 
+          parts: [{ text: prompt }] 
+        }] 
+      }),
+    });
 
-    // 3. コンテンツ生成
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const summary = response.text();
-
+    if (!apiResponse.ok) {
+      const errorData = await apiResponse.json();
+      throw new Error(`Gemini API request failed: ${apiResponse.status} ${errorData?.error?.message || 'Unknown error'}`);
+    }
+    
+    const responseData = await apiResponse.json();
+    const summary = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!summary) throw new Error('AIからの応答が空です。');
 
     // 正常なレスポンスを返す
