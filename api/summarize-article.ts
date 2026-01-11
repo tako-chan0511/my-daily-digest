@@ -2,6 +2,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS対応：Preflightリクエストの許可
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: "POST method required." });
   }
@@ -17,15 +22,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // 1. SDKを初期化
+    // 1. SDKを初期化（環境変数からキーを読み込む）
     const genAI = new GoogleGenerativeAI(geminiApiKey);
     
-   // 2. モデルの取得
-   // 'gemini-1.5-flash' が 404 になる場合、より互換性の高い以下を試してください
-   const model = genAI.getGenerativeModel(
-     { model: "gemini-1.5-flash-8b" }, // または "gemini-1.0-pro"
-     { apiVersion: 'v1' }
-   );
+    // 2. モデルの取得
+    // 重要：apiVersion: 'v1' を指定することで、404 (v1beta) エラーを回避します
+    const model = genAI.getGenerativeModel(
+      { model: "gemini-1.5-flash" }, 
+      { apiVersion: 'v1' }
+    );
 
     const prompt = `以下の記事を、Markdown形式で構造化して要約してください。見出し、太字、箇条書きリストなどを効果的に使用し、最も重要なポイントがひと目で分かるようにまとめてください。\n\n記事本文：\n${articleText}`;
 
@@ -36,14 +41,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!summary) throw new Error('AIからの応答が空です。');
 
+    // 正常なレスポンスを返す
     res.status(200).json({ summary: summary.trim() });
 
   } catch (error: any) {
-    // サーバーログに詳細を出力
+    // Vercelの Runtime Logs に詳細を出力
     console.error('Gemini API Error Detail:', error);
     
-    // エラーメッセージをフロントエンドに返す
-    const errorMessage = error.message || 'サーバーでエラーが発生しました。';
-    res.status(500).json({ error: `AI APIがエラー: ${errorMessage}` });
+    // フロントエンドに具体的なエラー内容を通知
+    res.status(500).json({ 
+      error: `AI APIがエラー: ${error.message || 'Unknown error'}` 
+    });
   }
 }
