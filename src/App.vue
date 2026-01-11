@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div class="top-bar">
-      <h1>AIニュースダイジェスト</h1>
+      <h1>AIニュースダイジェスト(Vue3)</h1>
       <div class="search-box">
         <input
           v-model="keyword"
