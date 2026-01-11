@@ -9,18 +9,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "cheerio": "^1.1.0",
     "marked": "^16.1.0",
     "vue": "^3.5.17"
   },
   "devDependencies": {
     "@types/marked": "^5.0.2",
-    "@types/node": "^24.0.14",
+    "@types/node": "^22.10.5",
     "@vercel/node": "^5.3.6",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/tsconfig": "^0.7.0",
-    "typescript": "~5.8.3",
-    "vite": "^7.0.4",
+    "typescript": "~5.6.3",
+    "vite": "^6.0.7",
     "vue-tsc": "^2.2.12"
   }
 }
