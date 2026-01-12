@@ -26,7 +26,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const prompt = `以下の記事を、Markdown形式で構造化して要約してください。見出し、太字、箇条書きリストなどを効果的に使用し、最も重要なポイントがひと目で分かるようにまとめてください。\n\n記事本文：\n${articleText}`;
     
     // サーバーのキーを使用
-    const apiUrl = `https://generativelanguage.googleapis.com/v1p1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    console.log('[DEBUG] Calling Gemini API URL:', apiUrl.replace(geminiApiKey, '***'));
+    
     const apiResponse = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,9 +39,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }),
     });
 
+    console.log('[DEBUG] Gemini API Response Status:', apiResponse.status);
+    
     if (!apiResponse.ok) {
       const errorData = await apiResponse.text();
-      console.error(`Gemini API Error Response: ${errorData}`);
+      console.error(`[ERROR] Gemini API Error Status: ${apiResponse.status}`);
+      console.error(`[ERROR] Gemini API Error Response: ${errorData}`);
       throw new Error(`AI APIがエラー: ${apiResponse.status}`);
     }
     
