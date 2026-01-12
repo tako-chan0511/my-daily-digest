@@ -9,6 +9,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { articleText } = req.body;
   // サーバーの環境変数から直接APIキーを読み込む
   const geminiApiKey = process.env.GEMINI_API_KEY;
+  
+  // デバッグログ
+  console.log('[DEBUG] GEMINI_API_KEY set:', !!geminiApiKey);
+  console.log('[DEBUG] articleText length:', articleText?.length || 0);
 
   if (!articleText || typeof articleText !== 'string') {
     return res.status(400).json({ error: '要約するための記事本文が必要です。' });

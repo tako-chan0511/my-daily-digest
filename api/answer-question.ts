@@ -10,6 +10,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // サーバーの環境変数から直接APIキーを読み込む
   const geminiApiKey = process.env.GEMINI_API_KEY;
 
+  // デバッグログ
+  console.log('[DEBUG] GEMINI_API_KEY set:', !!geminiApiKey);
+  console.log('[DEBUG] articleText length:', articleText?.length || 0);
+  console.log('[DEBUG] question provided:', !!question);
+
   if (!articleText || !question) {
     return res.status(400).json({ error: '記事本文と質問の両方が必要です。' });
   }
