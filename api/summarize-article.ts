@@ -22,11 +22,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Gemini APIキーがサーバーに設定されていません。' });
   }
 
+  // デバッグ：利用可能なモデルを確認
+  try {
+    const listModelsUrl = `https://generativelanguage.googleapis.com/v1/models?key=${geminiApiKey}`;
+    const listResponse = await fetch(listModelsUrl);
+    const listData = await listResponse.json();
+    console.log('[DEBUG] Available models:', JSON.stringify(listData.models?.map((m: any) => m.name) || [], null, 2));
+  } catch (e) {
+    console.error('[DEBUG] Failed to list models:', e);
+  }
+
   try {
     const prompt = `以下の記事を、Markdown形式で構造化して要約してください。見出し、太字、箇条書きリストなどを効果的に使用し、最も重要なポイントがひと目で分かるようにまとめてください。\n\n記事本文：\n${articleText}`;
     
     // サーバーのキーを使用
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
     console.log('[DEBUG] Calling Gemini API URL:', apiUrl.replace(geminiApiKey, '***'));
     
     const apiResponse = await fetch(apiUrl, {

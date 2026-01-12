@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ★★★ ここまでが修正箇所 ★★★
     
   // サーバーのキーを使用
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
     console.log('[DEBUG] Calling Gemini API URL:', apiUrl.replace(geminiApiKey, '***'));
     
     const apiResponse = await fetch(apiUrl, {
