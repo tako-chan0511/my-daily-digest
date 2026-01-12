@@ -173,3 +173,80 @@ async function generateWithAutoPick(apiKey: string, prompt: string): Promise<{ v
 
     const generateCapable = new Set(
       models
+        .filter((m) => typeof m?.name === 'string' && modelSupportsGenerateContent(m))
+        .map((m) => shortModelName(m.name as string))
+    );
+
+    // preferred優先 → それ以外
+    const candidates: string[] = [];
+    for (const p of preferred) if (available.includes(p)) candidates.push(p);
+    for (const a of available) if (!candidates.includes(a)) candidates.push(a);
+
+    for (const model of candidates) {
+      if (generateCapable.size > 0 && !generateCapable.has(model)) continue;
+
+      try {
+        const text = await generateContent(version, model, apiKey, prompt);
+        return { version, model, text };
+      } catch (e: any) {
+        const msg = String(e?.message ?? e);
+        console.warn(`[WARN] generateContent failed: ${msg}`);
+
+        // モデル/バージョン不一致は次候補へ
+        if (isGeminiNotFoundOrUnsupported(msg)) continue;
+
+        // それ以外（認証/課金/重大エラー）は即終了
+        throw e;
+      }
+    }
+  }
+
+  throw new Error('No working Gemini model found (checked v1beta/v1).');
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('=== [VER 3.0] answer-question (Gemini auto-pick v1beta/v1 + retry) ===');
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'POST method required.' });
+  }
+
+  const { articleText, question } = (req.body ?? {}) as { articleText?: unknown; question?: unknown };
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+
+  console.log('[DEBUG] GEMINI_API_KEY set:', !!geminiApiKey);
+  console.log('[DEBUG] articleText length:', typeof articleText === 'string' ? articleText.length : 0);
+  console.log('[DEBUG] question provided:', typeof question === 'string' && question.trim() !== '');
+
+  if (typeof articleText !== 'string' || articleText.trim() === '' || typeof question !== 'string' || question.trim() === '') {
+    return res.status(400).json({ error: '記事本文と質問の両方が必要です。' });
+  }
+  if (!geminiApiKey) {
+    return res.status(500).json({ error: 'Gemini APIキーがサーバーに設定されていません。' });
+  }
+
+  try {
+    // 長すぎると不安定になるので制限（必要なら調整）
+    const article = normalizeText(articleText).slice(0, 8000);
+    const q = normalizeText(question).slice(0, 1000);
+
+    const prompt =
+      `あなたは、与えられた「記事本文」を深く理解し、自身の持つ広範な専門知識と組み合わせて洞察を提供する、優秀な専門アナリストです。\n\n` +
+      `ユーザーからの「質問」に対して、以下の指示に従って回答を生成してください。\n\n` +
+      `1. まず「記事本文」に書かれている情報を最優先の根拠（一次情報）とする。\n` +
+      `2. その上で、あなたの専門知識を補足情報として活用し、多角的に回答する。\n` +
+      `3. 記事に直接書かれていない推論/予測は、あなた自身の考察であることを明示する。\n` +
+      `4. 回答は必ずMarkdownで、見出し/太字/箇条書きを使って構造化する。\n\n` +
+      `---記事本文---\n${article}\n\n` +
+      `---質問---\n${q}\n\n` +
+      `---回答---\n`;
+
+    const generated = await generateWithAutoPick(geminiApiKey, prompt);
+    console.log('[DEBUG] Gemini picked:', { version: generated.version, model: generated.model });
+
+    return res.status(200).json({ answer: generated.text.trim() });
+  } catch (error: any) {
+    console.error('An error occurred in answer-question handler:', error?.message ?? error);
+    return res.status(500).json({ error: error?.message ?? 'サーバーでエラーが発生しました。' });
+  }
+}
